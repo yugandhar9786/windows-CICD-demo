@@ -1,0 +1,36 @@
+name: Deploy to IIS on Windows VM
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: windows-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Zip the web app
+        run: |
+          Compress-Archive -Path * -DestinationPath webapp.zip
+
+      - name: 📤 Deploy to IIS on remote VM
+        shell: pwsh
+        run: |
+          $secpasswd = ConvertTo-SecureString "${{ secrets.VM_PASSWORD }}" -AsPlainText -Force
+          $cred = New-Object System.Management.Automation.PSCredential ("${{ secrets.VM_USERNAME }}", $secpasswd)
+
+          Invoke-Command -ComputerName "${{ secrets.VM_HOST }}" -Credential $cred -ScriptBlock {
+              Remove-Item -Path "C:\inetpub\wwwroot\*" -Recurse -Force -ErrorAction SilentlyContinue
+          }
+
+          Copy-Item -Path webapp.zip -Destination "\\${{ secrets.VM_HOST }}\C$\inetpub\wwwroot\webapp.zip" -Credential $cred
+
+          Invoke-Command -ComputerName "${{ secrets.VM_HOST }}" -Credential $cred -ScriptBlock {
+              Expand-Archive -Path "C:\inetpub\wwwroot\webapp.zip" -DestinationPath "C:\inetpub\wwwroot" -Force
+              Remove-Item "C:\inetpub\wwwroot\webapp.zip"
+              iisreset
+          }
