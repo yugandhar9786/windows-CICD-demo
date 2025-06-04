@@ -10,14 +10,14 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: 📥 Checkout code
+      - name:  Checkout code
         uses: actions/checkout@v4
 
-      - name: 📦 Zip the web app
+      - name:  Zip the web app
         run: |
           Compress-Archive -Path * -DestinationPath webapp.zip
 
-      - name: 📤 Deploy to IIS on remote VM
+      - name:  Deploy to IIS on remote VM
         shell: pwsh
         run: |
           $secpasswd = ConvertTo-SecureString "${{ secrets.VM_PASSWORD }}" -AsPlainText -Force
